@@ -1,0 +1,38 @@
+buildscript {
+    ext.kotlin_version = '1.2.71'
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+    configurations.all {
+        resolutionStrategy.force 'com.google.ar.sceneform.ux:sceneform-ux:1.8.0'
+        resolutionStrategy.force 'com.google.ar.sceneform:filament-android:1.8.0'
+        resolutionStrategy.force 'com.google.ar.sceneform:sceneform-base:1.8.0'
+        resolutionStrategy.force 'com.google.ar.sceneform:*:1.8.0'
+        resolutionStrategy.force 'com.google.ar.sceneform:core:1.8.0'
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
