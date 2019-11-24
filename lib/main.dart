@@ -64,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Container(
                   margin: EdgeInsets.only(top: 120),
-                  constraints: BoxConstraints.expand(height:500),
+                  constraints: BoxConstraints.expand(height: 550),
                   child: ListView(
                     padding: EdgeInsets.only(left: 40),
                     scrollDirection: Axis.horizontal,
@@ -114,10 +114,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget getJobCard(Cotization c) {
-    return Container(
+    return  Container(
       padding: EdgeInsets.all(10),
       margin: EdgeInsets.only(right: 20, bottom: 30, top: 30),
-      height: 150,
       width: 300,
       decoration: BoxDecoration(
         color: Colors.white,
