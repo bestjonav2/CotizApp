@@ -27,6 +27,7 @@ class _HelloWorldState extends State<HelloWorld> {
 
   void _onArCoreViewCreated(ArCoreController controller) {
     arCoreController = controller;
+    PointCloud pointCloud = .acquirePointCloud()
 
     _addSphere(arCoreController);
     _addCylindre(arCoreController);
@@ -34,11 +35,10 @@ class _HelloWorldState extends State<HelloWorld> {
   }
 
   Future _addSphere(ArCoreController controller) async {
-    final ByteData textureBytes = await rootBundle.load('assets/earth.jpg');
+    //final ByteData textureBytes = await rootBundle.load("assets/earth.jpg");
 
-    final material = ArCoreMaterial(
-        color: Color.fromARGB(120, 66, 134, 244),
-        textureBytes: textureBytes.buffer.asUint8List());
+    final material = ArCoreMaterial(color: Color.fromARGB(120, 66, 134, 244));
+    //textureBytes: textureBytes.buffer.asUint8List());
     final sphere = ArCoreSphere(
       materials: [material],
       radius: 0.1,
@@ -47,7 +47,7 @@ class _HelloWorldState extends State<HelloWorld> {
       shape: sphere,
       position: vector.Vector3(0, 0, -1.5),
     );
-    controller.addArCoreNode(node);
+    //controller.addArCoreNode(node);
   }
 
   void _addCylindre(ArCoreController controller) {
@@ -64,7 +64,7 @@ class _HelloWorldState extends State<HelloWorld> {
       shape: cylindre,
       position: vector.Vector3(0.0, -0.5, -2.0),
     );
-    controller.addArCoreNode(node);
+    //controller.addArCoreNode(node);
   }
 
   void _addCube(ArCoreController controller) {
@@ -80,7 +80,7 @@ class _HelloWorldState extends State<HelloWorld> {
       shape: cube,
       position: vector.Vector3(-0.5, 0.5, -3.5),
     );
-    controller.addArCoreNode(node);
+    //controller.addArCoreNode(node);
   }
 
   @override
