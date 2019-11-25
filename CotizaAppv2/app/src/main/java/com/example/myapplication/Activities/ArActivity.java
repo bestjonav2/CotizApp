@@ -6,32 +6,29 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.myapplication.Fragments.MyArFragment;
-import com.google.ar.core.Anchor;
-import com.google.ar.core.AugmentedImage;
-import com.google.ar.core.AugmentedImageDatabase;
-import com.google.ar.core.Config;
-import com.google.ar.core.Frame;
-import com.google.ar.core.HitResult;
-import com.google.ar.core.Pose;
-import com.google.ar.core.Session;
-import com.google.ar.core.TrackingState;
+import com.example.myapplication.Models.MeasurePoint;
+import com.google.ar.core.*;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.FrameTime;
-import com.google.ar.sceneform.rendering.ModelRenderable;
-import com.google.ar.sceneform.rendering.Renderable;
+import com.google.ar.sceneform.Node;
+import com.google.ar.sceneform.math.Quaternion;
+import com.google.ar.sceneform.math.Vector3;
+import com.google.ar.sceneform.rendering.*;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import com.example.myapplication.R;
 import androidx.annotation.RequiresApi;
@@ -43,22 +40,23 @@ public class ArActivity  extends AppCompatActivity {
     boolean shouldAddModel = true;
     private AnchorNode currentAnchorNode;
     ModelRenderable cubeRenderable;
-    Anchor startAnchor;
     private Anchor currentAnchor = null;
-    HitResult hitResult;
     TextView tvDistance;
     boolean addPoint = false;
+
+    ArrayList<MeasurePoint> points;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ar);
         tvDistance = findViewById(R.id.tvDistance);
-
+        points = new ArrayList<>();
 
         arFragment = (MyArFragment) getSupportFragmentManager().findFragmentById(R.id.my_ar_fragment);
         arFragment.getPlaneDiscoveryController().hide();
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);
+
         arFragment.setOnTapArPlaneListener((hitResult,plane,motionEvent)->{
             Anchor anchor = hitResult.createAnchor();
             AnchorNode anchorNode = new AnchorNode(anchor);
@@ -67,6 +65,7 @@ public class ArActivity  extends AppCompatActivity {
             currentAnchor = anchor;
             currentAnchorNode = anchorNode;
 
+            points.add(new MeasurePoint(currentAnchorNode, currentAnchor, 0f));
 
             TransformableNode node = new TransformableNode(arFragment.getTransformationSystem());
             node.setRenderable(cubeRenderable);
@@ -76,6 +75,12 @@ public class ArActivity  extends AppCompatActivity {
             node.select();
 
             addPoint = true;
+
+            if(points.size() >= 2) {
+                Anchor a1 = points.get(points.size() - 1).getAnchor();
+                Anchor a2 = points.get(points.size() - 2).getAnchor();
+                addLineBetweenHits(a1, a2, plane, motionEvent);
+            }
         });
 
     }
@@ -85,16 +90,20 @@ public class ArActivity  extends AppCompatActivity {
     private void onUpdateFrame(FrameTime frameTime) {
         Frame frame = arFragment.getArSceneView().getArFrame();
 
-        if (currentAnchorNode != null && addPoint) {
-            Pose objectPose = currentAnchor.getPose();
-            Pose cameraPose = frame.getCamera().getPose();
+        if (currentAnchorNode != null && addPoint && points.size() >= 2) {
+            Anchor a1 = points.get(points.size() - 1).getAnchor();
+            Anchor a2 = points.get(points.size() - 2).getAnchor();
+            Pose objectPose = a1.getPose();
+            Pose objectPose2 = a2.getPose();
 
-            float dx = objectPose.tx() - cameraPose.tx();
-            float dy = objectPose.ty() - cameraPose.ty();
-            float dz = objectPose.tz() - cameraPose.tz();
+            float dx = objectPose.tx() - objectPose2.tx();
+            float dy = objectPose.ty() - objectPose2.ty();
+            float dz = objectPose.tz() - objectPose2.tz();
 
             ///Compute the straight-line distance.
             float distanceMeters = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+            points.get(points.size() - 1).setDistanceToLastPoint(distanceMeters);
+
             tvDistance.setText("Distance from camera: " + distanceMeters + " metres");
 
             addPoint = false;
@@ -104,55 +113,43 @@ public class ArActivity  extends AppCompatActivity {
             for (int i = 0; i < 3; ++i)
                 totalDistanceSquared += distance_vector[i] * distance_vector[i];*/
         }
-//        for (AugmentedImage augmentedImage : augmentedImages) {
-//            if (augmentedImage.getTrackingState() == TrackingState.TRACKING) {
-//                if (augmentedImage.getName().equals("fox") && shouldAddModel) {
-//                    placeObject(arFragment, augmentedImage.createAnchor(augmentedImage.getCenterPose()), Uri.parse("ArcticFox_Posed.sfb"));
-//                    shouldAddModel = false;
-//                }
-//            }
-//        }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private void placeObject(ArFragment arFragment, Anchor anchor, Uri parse) {
-        Toast.makeText(getApplicationContext(),"Place Model",Toast.LENGTH_SHORT).show();
-        ModelRenderable.builder()
-                .setSource(arFragment.getContext(), parse)
-                .build()
-                .thenAccept(modelRenderable -> addNodeToScene(arFragment, anchor, modelRenderable))
-                .exceptionally(throwable -> {
-                    Toast.makeText(arFragment.getContext(), "Error:" + throwable.getMessage(), Toast.LENGTH_LONG).show();
-                    return null;
-                });
+    private void addLineBetweenHits(Anchor anchor1, Anchor anchor2, Plane plane, MotionEvent motionEvent) {
+
+        int val = motionEvent.getActionMasked();
+        float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
+        Log.e("Values:", String.valueOf(val) + String.valueOf(axisVal));
+        AnchorNode anchorNode = new AnchorNode(anchor1);
+        AnchorNode anchorNode2 = new AnchorNode(anchor2);
+
+        anchorNode.setParent(arFragment.getArSceneView().getScene());
+
+        Vector3 point1, point2;
+        point1 = anchorNode.getWorldPosition();
+        point2 = anchorNode2.getWorldPosition();
+
+        final Vector3 difference = Vector3.subtract(point1, point2);
+        final Vector3 directionFromTopToBottom = difference.normalized();
+        final Quaternion rotationFromAToB =
+                Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+        MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(0, 255, 244))
+                .thenAccept(
+                        material -> {
+                        /* Then, create a rectangular prism, using ShapeFactory.makeCube() and use the difference vector
+                               to extend to the necessary length.  */
+                            ModelRenderable model = ShapeFactory.makeCube(
+                                    new Vector3(.01f, .01f, difference.length()),
+                                    Vector3.zero(), material);
+                        /* Last, set the world rotation of the node to the rotation calculated earlier and set the world position to
+                               the midpoint between the given points . */
+                            Node node = new Node();
+                            node.setParent(anchorNode);
+                            node.setRenderable(model);
+                            node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+                            node.setWorldRotation(rotationFromAToB);
+                        }
+                );
     }
 
-    public boolean setupAugmentedImagesDb(Config config, Session session) {
-        AugmentedImageDatabase augmentedImageDatabase;
-        Bitmap bitmap = loadAugmentedImage();
-        if (bitmap == null) {
-            return false;
-        }        augmentedImageDatabase = new AugmentedImageDatabase(session);
-        augmentedImageDatabase.addImage("fox", bitmap);
-        config.setAugmentedImageDatabase(augmentedImageDatabase);
-        return true;
-    }
-
-    private Bitmap loadAugmentedImage() {
-        try (InputStream is = getAssets().open("earth.jpg")) {
-            Log.wtf("wtf","We're here");
-            return BitmapFactory.decodeStream(is);
-        } catch (IOException e) {
-            Log.wtf("wtf", "IO Exception", e);
-        }        return null;
-    }
-
-    private void addNodeToScene(ArFragment arFragment, Anchor anchor, Renderable renderable) {
-        AnchorNode anchorNode = new AnchorNode(anchor);
-        TransformableNode node = new TransformableNode(arFragment.getTransformationSystem());
-        node.setRenderable(renderable);
-        node.setParent(anchorNode);
-        arFragment.getArSceneView().getScene().addChild(anchorNode);
-        node.select();
-    }
 }
