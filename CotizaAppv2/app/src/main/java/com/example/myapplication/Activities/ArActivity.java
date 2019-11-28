@@ -7,6 +7,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,6 +44,9 @@ public class ArActivity  extends AppCompatActivity {
     ModelRenderable cubeRenderable;
     private Anchor currentAnchor = null;
     TextView tvDistance;
+    float areaBase;
+    float volumen;
+    Button btnCambio;
     boolean addPoint = false;
 
     ArrayList<MeasurePoint> points;
@@ -51,7 +56,15 @@ public class ArActivity  extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ar);
         tvDistance = findViewById(R.id.tvDistance);
+        btnCambio = findViewById(R.id.btnCambio);
         points = new ArrayList<>();
+        btnCambio.setEnabled(false);
+        btnCambio.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
 
         arFragment = (MyArFragment) getSupportFragmentManager().findFragmentById(R.id.my_ar_fragment);
         arFragment.getPlaneDiscoveryController().hide();
@@ -75,11 +88,20 @@ public class ArActivity  extends AppCompatActivity {
             node.select();
 
             addPoint = true;
-
+            if(points.size() == 1){
+                tvDistance.setText("Seleccione la siguiente arista.");
+            }
+            if(points.size() == 2){
+                tvDistance.setText("Seleccione la tercera arista.");
+            }
             if(points.size() >= 2) {
                 Anchor a1 = points.get(points.size() - 1).getAnchor();
                 Anchor a2 = points.get(points.size() - 2).getAnchor();
                 addLineBetweenHits(a1, a2, plane, motionEvent);
+            }
+            if(points.size() == 3){
+                tvDistance.setText("Volte el objeto para medir su altura");
+                btnCambio.setEnabled(true);
             }
         });
 
@@ -103,8 +125,17 @@ public class ArActivity  extends AppCompatActivity {
             ///Compute the straight-line distance.
             float distanceMeters = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
             points.get(points.size() - 1).setDistanceToLastPoint(distanceMeters);
-
-            tvDistance.setText("Distance from camera: " + distanceMeters + " metres");
+            if(points.size()==2){
+                areaBase = distanceMeters;
+            }
+            if(points.size()==3){
+                areaBase = areaBase*distanceMeters;
+            }
+            if(points.size()==5){
+                volumen = areaBase*distanceMeters;
+                tvDistance.setText("Volumen de la figura:"+ volumen+ "m3");
+            }
+            //tvDistance.setText("Distance from camera: " + distanceMeters + " metres");
 
             addPoint = false;
             /*float[] distance_vector = currentAnchor.getPose().inverse()
