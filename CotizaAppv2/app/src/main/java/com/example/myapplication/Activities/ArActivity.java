@@ -62,7 +62,7 @@ public class ArActivity  extends AppCompatActivity {
         btnCambio.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                clearAnchor();
             }
         });
 
@@ -94,7 +94,7 @@ public class ArActivity  extends AppCompatActivity {
             if(points.size() == 2){
                 tvDistance.setText("Seleccione la tercera arista.");
             }
-            if(points.size() >= 2) {
+            if(points.size() >= 2 && points.size() != 4) {
                 Anchor a1 = points.get(points.size() - 1).getAnchor();
                 Anchor a2 = points.get(points.size() - 2).getAnchor();
                 addLineBetweenHits(a1, a2, plane, motionEvent);
@@ -104,6 +104,20 @@ public class ArActivity  extends AppCompatActivity {
                 btnCambio.setEnabled(true);
             }
         });
+
+    }
+    private void clearAnchor() {
+        for(int i = 0;i<points.size();i++) {
+            Anchor currentAncho = points.get(i).getAnchor();
+            AnchorNode currentAnchorNod = points.get(i).getAnchorNode();
+            currentAncho = null;
+            if (currentAnchorNod != null) {
+                arFragment.getArSceneView().getScene().removeChild(currentAnchorNod);
+                currentAnchorNod.getAnchor().detach();
+                currentAnchorNod.setParent(null);
+                currentAnchorNod = null;
+            }
+        }
 
     }
 
