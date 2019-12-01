@@ -74,7 +74,7 @@ public class ArActivity  extends AppCompatActivity {
         });
 
         arFragment = (MyArFragment) getSupportFragmentManager().findFragmentById(R.id.my_ar_fragment);
-        //arFragment.getPlaneDiscoveryController().hide();
+        arFragment.getPlaneDiscoveryController().hide();
         arFragment.getPlaneDiscoveryController().setInstructionView(null);
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);// añadimos el listener para las escenas
 

@@ -41,19 +41,12 @@ public class MainActivity extends AppCompatActivity{
 
         /*hasPermissionAndOpenCamera();
         startActivity(inArFragment);*/
-        //getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MyArFragment()).commit();
     }
 
     private void hasPermissionAndOpenCamera() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            startActivityCameraFragment();
-        } else {
+        if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
             requestPermission();
         }
-    }
-
-    private void startActivityCameraFragment() {
-        //cameraFragment = CameraFragment.newInstance(new Configuration.Builder().build());
     }
 
     private void requestPermission() {
