@@ -4,8 +4,10 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.opengl.GLES20;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,9 +31,14 @@ import com.google.ar.sceneform.rendering.*;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import com.example.myapplication.R;
@@ -53,6 +60,9 @@ public class ArActivity  extends AppCompatActivity {
     private float altura1;
     Button btnCambio;
     boolean addPoint = false;
+    private int mWidth;
+    private int mHeight;
+    private  boolean capturePicture = false;
 
     ArrayList<MeasurePoint> points;
 
@@ -67,8 +77,11 @@ public class ArActivity  extends AppCompatActivity {
         btnCambio.setOnClickListener(new View.OnClickListener() {//listener del boton
             @Override
             public void onClick(View view) {
-                if(points.size()>=5)//si hay un cubo hecho reiniciamos la actividad
+                if(points.size()>=5) {//si hay un cubo hecho reiniciamos la actividad
+                    capturePicture = true;
+                    btnCambio.setText("Reiniciar");
                     recreate();
+                }
                 clearAnchor();
             }
         });
@@ -198,7 +211,7 @@ public class ArActivity  extends AppCompatActivity {
                 //String res = new BigDecimal(resultado).toPlainString();
                 tvDistance.setText("Volumen de la figura: "+ resultado+" "+medida);//imprimimos el volumen calculado
                 createCube();//llamamos a pintar la figura
-                btnCambio.setText("Reiniciar");
+                btnCambio.setText("Guardar");
             }
             //tvDistance.setText("Distance from camera: " + distanceMeters + " metres");
 
@@ -208,8 +221,46 @@ public class ArActivity  extends AppCompatActivity {
             float totalDistanceSquared = 0;
             for (int i = 0; i < 3; ++i)
                 totalDistanceSquared += distance_vector[i] * distance_vector[i];*/
+            if (capturePicture) {
+                capturePicture = false;
+                try {
+                    SavePicture();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
         }
+    }
+    public void SavePicture() throws IOException {
+        int pixelData[] = new int[mWidth * mHeight];
+
+        // Read the pixels from the current GL frame.
+        IntBuffer buf = IntBuffer.wrap(pixelData);
+        buf.position(0);
+        GLES20.glReadPixels(0, 0, mWidth, mHeight,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf);
+
+
+        // Convert the pixel data from RGBA to what Android wants, ARGB.
+        int bitmapData[] = new int[pixelData.length];
+        for (int i = 0; i < mHeight; i++) {
+            for (int j = 0; j < mWidth; j++) {
+                int p = pixelData[i * mWidth + j];
+                int b = (p & 0x00ff0000) >> 16;
+                int r = (p & 0x000000ff) << 16;
+                int ga = p & 0xff00ff00;
+                bitmapData[(mHeight - i - 1) * mWidth + j] = ga | r | b;
+            }
+        }
+        // Create a bitmap.
+        Bitmap bmp = Bitmap.createBitmap(bitmapData,
+                mWidth, mHeight, Bitmap.Config.ARGB_8888);
+
+        // Write it to disk.
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        byte[] data = baos.toByteArray();
     }
 
     /**
