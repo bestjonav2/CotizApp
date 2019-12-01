@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -16,7 +18,12 @@ import com.example.myapplication.Models.MeasurePoint;
 import com.example.myapplication.R;
 import com.example.myapplication.RecyclerAdapter;
 import com.github.florent37.camerafragment.CameraFragment;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +63,22 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private List<Cotization> getData() {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
         List<Cotization> data = new ArrayList<>();
+        db.collection("cotization")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Log.d("Firebase GetData", document.getId() + " => " + document.getData());
+                            }
+                        } else {
+                            Log.w("Firebase GetData", "Error getting documents.", task.getException());
+                        }
+                    }
+                });
 
         data.add(new Cotization("22", "Pieza para jalarse el pito", 22.5, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
         data.add(new Cotization("33", "Pieza para una pata de un wey", 78.2, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));

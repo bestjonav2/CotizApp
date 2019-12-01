@@ -6,6 +6,7 @@
     <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
     <uses-feature android:name="android.hardware.camera"></uses-feature>
     <uses-feature android:name="android.hardware.camera.autofocus"></uses-feature>
+    <uses-permission android:name="android.permission.INTERNET" />
 
 
 
