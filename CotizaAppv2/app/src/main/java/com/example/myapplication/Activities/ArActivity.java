@@ -17,6 +17,8 @@ import android.widget.Toast;
 
 import com.example.myapplication.Fragments.MyArFragment;
 import com.example.myapplication.Models.MeasurePoint;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.ar.core.*;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
@@ -42,9 +44,17 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import com.example.myapplication.R;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ar.core.Session;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 public class ArActivity  extends AppCompatActivity {
     ArFragment arFragment;
@@ -63,7 +73,6 @@ public class ArActivity  extends AppCompatActivity {
     private int mWidth;
     private int mHeight;
     private  boolean capturePicture = false;
-
     ArrayList<MeasurePoint> points;
 
     @Override
@@ -259,8 +268,40 @@ public class ArActivity  extends AppCompatActivity {
 
         // Write it to disk.
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] data = baos.toByteArray();
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        // Create a storage reference from our app
+        StorageReference storageRef = storage.getReferenceFromUrl("gs://cotizapp-bd310.appspot.com");
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        String date = dtf.format(now);
+        // Create a reference to "mountains.jpg"
+        StorageReference mountainsRef = storageRef.child(date+".jpg");
+
+        // Create a reference to 'images/mountains.jpg'
+        StorageReference mountainImagesRef = storageRef.child("images/"+date+".jpg");
+
+        // While the file names are the same, the references point to different files
+        mountainsRef.getName().equals(mountainImagesRef.getName());    // true
+        mountainsRef.getPath().equals(mountainImagesRef.getPath());    // false
+
+        UploadTask uploadTask = mountainsRef.putBytes(data);
+        uploadTask.addOnFailureListener(new OnFailureListener(){
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                // Handle unsuccessful uploads
+                Log.d("FIREBASEURL=========================>","PUS FALLO");
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
+                Uri downloadUrl = taskSnapshot.getUploadSessionUri();
+                Log.d("FIREBASEURL=========================>",""+downloadUrl);
+            }
+        });
     }
 
     /**
