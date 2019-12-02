@@ -35,8 +35,6 @@ import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity{
-    BottomNavigationView nav;
-    private CameraFragment cameraFragment;
     Intent inArFragment;
 
     @Override
@@ -104,19 +102,6 @@ public class MainActivity extends AppCompatActivity{
         String[] permissions = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
 
         ActivityCompat.requestPermissions(this, permissions, PackageManager.PERMISSION_GRANTED);
-    }
-
-    private List<Cotization> getData() {
-
-
-        /*data.add(new Cotization("22", "Pieza para jalarse el pito", 22.5, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
-        data.add(new Cotization("33", "Pieza para una pata de un wey", 78.2, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
-        data.add(new Cotization("36", "Pieza para un carro de RC", 6969.69, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
-        data.add(new Cotization("40", "Pieza para algo", 12.34, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
-        data.add(new Cotization("69", "Pieza para jalarse el pito v2", 420.69, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));*/
-        //add information each of cardview
-        //load imageView by picasso
-        return null;
     }
 
     public void openCamera(View view) {

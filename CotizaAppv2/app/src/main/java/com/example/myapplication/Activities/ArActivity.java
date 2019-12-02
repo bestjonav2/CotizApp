@@ -188,7 +188,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
      * Método que dibuja la figura
      */
     private void createCube(){
-            CompletableFuture<Void> a = MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(0f, 157f, 164f,0.8f))
+            MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(0f, 157f, 164f,0.8f))
                 .thenAccept(
                         material -> {
 
@@ -212,10 +212,6 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
     private void onUpdateFrame(FrameTime frameTime) {//
         Frame frame = arFragment.getArSceneView().getArFrame();//Tomamos la escena
         //entramos solo si tenemos un anchor seleccionado YY si  ya hay dos puntosen nuetra lista de puntos
-        if (frame.getCamera().getTrackingState() == TrackingState.TRACKING) {
-            arFragment.getPlaneDiscoveryController().hide();
-            arFragment.getPlaneDiscoveryController().setInstructionView(null);
-        }
         if (currentAnchorNode != null && addPoint && points.size() >= 2) {
             Anchor a1 = points.get(points.size() - 1).getAnchor();//Agarmmos los ultimos dos puntos
             Anchor a2 = points.get(points.size() - 2).getAnchor();
@@ -264,26 +260,6 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
         }
     }
     public void SavePicture() throws IOException {
-        int[] pixelData = new int[mWidth * mHeight];
-
-        // Read the pixels from the current GL frame.
-        IntBuffer buf = IntBuffer.wrap(pixelData);
-        buf.position(0);
-        GLES20.glReadPixels(0, 0, mWidth, mHeight,
-                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf);
-
-
-        // Convert the pixel data from RGBA to what Android wants, ARGB.
-        int[] bitmapData = new int[pixelData.length];
-        for (int i = 0; i < mHeight; i++) {
-            for (int j = 0; j < mWidth; j++) {
-                int p = pixelData[i * mWidth + j];
-                int b = (p & 0x00ff0000) >> 16;
-                int r = (p & 0x000000ff) << 16;
-                int ga = p & 0xff00ff00;
-                bitmapData[(mHeight - i - 1) * mWidth + j] = ga | r | b;
-            }
-        }
         // Create a bitmap.
         ArSceneView view = arFragment.getArSceneView();
         Bitmap bmp = Bitmap.createBitmap(view.getWidth(),view.getHeight(), Bitmap.Config.ARGB_8888);
