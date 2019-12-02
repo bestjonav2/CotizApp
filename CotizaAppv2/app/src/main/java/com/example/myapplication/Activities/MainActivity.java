@@ -1,6 +1,7 @@
 package com.example.myapplication.Activities;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
@@ -44,29 +45,6 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
         inArFragment = new Intent(this, ArActivity.class);
 
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.rv);
-        RecyclerAdapter recyclerAdapter = new RecyclerAdapter(this, getData());
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        recyclerView.addItemDecoration(new LeftSpacing(150));
-        recyclerView.setAdapter(recyclerAdapter);
-
-        /*hasPermissionAndOpenCamera();
-        startActivity(inArFragment);*/
-    }
-
-    private void hasPermissionAndOpenCamera() {
-        if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
-            requestPermission();
-        }
-    }
-
-    private void requestPermission() {
-        String[] permissions = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
-
-        ActivityCompat.requestPermissions(this, permissions, PackageManager.PERMISSION_GRANTED);
-    }
-
-    private List<Cotization> getData() {
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         mAuth.signInAnonymously()
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
@@ -88,6 +66,9 @@ public class MainActivity extends AppCompatActivity{
                 });
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         List<Cotization> data = new ArrayList<>();
+        Context ctx = this;
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.rv);
+
         db.collection("cotization")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
@@ -95,22 +76,47 @@ public class MainActivity extends AppCompatActivity{
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
                             for (QueryDocumentSnapshot document : task.getResult()) {
-                                Log.d("Firebase GetData", document.getId() + " => " + document.getData());
+                                Log.d("Firebase GetData", document.getId() + " => " + document.getData() + " => " + document.get("description").toString());
+                                data.add(new Cotization(document.getId(), document.get("description").toString(), document.getDouble("averageCost"), document.get("figureVolume").toString(), document.get("url").toString()));
                             }
+
+                            RecyclerAdapter recyclerAdapter = new RecyclerAdapter(ctx, data);
+                            recyclerView.setLayoutManager(new LinearLayoutManager(ctx, RecyclerView.HORIZONTAL, false));
+                            recyclerView.addItemDecoration(new LeftSpacing(150));
+                            recyclerView.setAdapter(recyclerAdapter);
                         } else {
                             Log.w("Firebase GetData", "Error getting documents.", task.getException());
                         }
                     }
                 });
 
-        data.add(new Cotization("22", "Pieza para jalarse el pito", 22.5, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
+        /*hasPermissionAndOpenCamera();
+        startActivity(inArFragment);*/
+    }
+
+    private void hasPermissionAndOpenCamera() {
+        if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
+            requestPermission();
+        }
+    }
+
+    private void requestPermission() {
+        String[] permissions = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+
+        ActivityCompat.requestPermissions(this, permissions, PackageManager.PERMISSION_GRANTED);
+    }
+
+    private List<Cotization> getData() {
+
+
+        /*data.add(new Cotization("22", "Pieza para jalarse el pito", 22.5, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
         data.add(new Cotization("33", "Pieza para una pata de un wey", 78.2, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
         data.add(new Cotization("36", "Pieza para un carro de RC", 6969.69, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
         data.add(new Cotization("40", "Pieza para algo", 12.34, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
-        data.add(new Cotization("69", "Pieza para jalarse el pito v2", 420.69, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));
+        data.add(new Cotization("69", "Pieza para jalarse el pito v2", 420.69, new ArrayList<MeasurePoint>(), new ArrayList<MeasurePoint>()));*/
         //add information each of cardview
         //load imageView by picasso
-        return data;
+        return null;
     }
 
     public void openCamera(View view) {

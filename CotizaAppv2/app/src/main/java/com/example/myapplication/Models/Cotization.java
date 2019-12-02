@@ -1,20 +1,22 @@
 package com.example.myapplication.Models;
 
+import android.net.Uri;
+
 import java.util.ArrayList;
 
 public class Cotization {
     String id;
     String description;
     double averageCost;
-    ArrayList<MeasurePoint> width;
-    ArrayList<MeasurePoint> height;
+    String figureVolume;
+    String url;
 
-    public Cotization(String id, String description, double averageCost, ArrayList<MeasurePoint> width, ArrayList<MeasurePoint> height) {
+    public Cotization(String id, String description, double averageCost, String figureVolume, String url) {
         this.id = id;
         this.description = description;
         this.averageCost = averageCost;
-        this.width = width;
-        this.height = height;
+        this.figureVolume = figureVolume;
+        this.url = url;
     }
 
     public String getId() {
@@ -41,19 +43,20 @@ public class Cotization {
         this.averageCost = averageCost;
     }
 
-    public ArrayList<MeasurePoint> getWidth() {
-        return width;
+    public String getFigureVolume() {
+        return figureVolume;
     }
 
-    public void setWidth(ArrayList<MeasurePoint> width) {
-        this.width = width;
+    public void setFigureVolume(String figureVolume) {
+        this.figureVolume = figureVolume;
     }
 
-    public ArrayList<MeasurePoint> getHeight() {
-        return height;
+    public String getUrl() {
+        return url;
     }
 
-    public void setHeight(ArrayList<MeasurePoint> height) {
-        this.height = height;
+    public void setUrl(String url) {
+        this.url = url;
     }
+
 }
