@@ -1,104 +1,77 @@
 package com.example.myapplication.Activities;
 
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.PixelCopy;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.myapplication.ExampleDialog;
 import com.example.myapplication.Fragments.MyArFragment;
 import com.example.myapplication.Models.Cotization;
 import com.example.myapplication.Models.MeasurePoint;
-import com.google.android.gms.tasks.OnCompleteListener;
+import com.example.myapplication.R;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.ar.core.*;
-import com.google.ar.core.exceptions.UnavailableApkTooOldException;
-import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
-import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
-import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+import com.google.ar.core.Anchor;
+import com.google.ar.core.Frame;
+import com.google.ar.core.Plane;
+import com.google.ar.core.Pose;
+import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
-import com.google.ar.sceneform.rendering.*;
+import com.google.ar.sceneform.rendering.Color;
+import com.google.ar.sceneform.rendering.MaterialFactory;
+import com.google.ar.sceneform.rendering.ModelRenderable;
+import com.google.ar.sceneform.rendering.ShapeFactory;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import com.example.myapplication.R;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import com.google.ar.core.Session;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import java.time.format.DateTimeFormatter;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.IntBuffer;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
-import io.opencensus.metrics.export.Point;
 
 public class ArActivity  extends AppCompatActivity implements ExampleDialog.ExampleDialogListener{
-    ArFragment arFragment;
-    boolean shouldAddModel = true;
+    private ArFragment arFragment;
     private AnchorNode currentAnchorNode;
-    ModelRenderable cubeRenderable;
+    private ModelRenderable cubeRenderable;
     private Anchor currentAnchor = null;
-    TextView tvDistance;
-    float areaBase;
-    float volumen;
-    private float ancho1;
-    private float ancho2;
-    private float altura1;
-    Button btnCambio;
-    boolean addPoint = false;
+    private TextView tvDistance;
+    private float areaBase;
+    private float volumen;
+    private Button btnCambio;
+    private boolean addPoint = false;
     private int mWidth;
     private int mHeight;
-    private  boolean capturePicture = false;
-    ArrayList<MeasurePoint> points;
-    final String[] uris = new String[1];
-    AlertDialog alertDialog;
+    private ArrayList<MeasurePoint> points;
+    private final String[] uris = new String[1];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +85,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
             @Override
             public void onClick(View view) {
                 if(points.size()>=5) {//si hay un cubo hecho reiniciamos la actividad
-                    Log.d("FIREBASE","PUSI");
+                    Log.d("FIREBASE","PUS SI");
 
                     DisplayMetrics d = new DisplayMetrics();
                     getWindowManager().getDefaultDisplay().getMetrics(d);
@@ -291,7 +264,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
         }
     }
     public void SavePicture() throws IOException {
-        int pixelData[] = new int[mWidth * mHeight];
+        int[] pixelData = new int[mWidth * mHeight];
 
         // Read the pixels from the current GL frame.
         IntBuffer buf = IntBuffer.wrap(pixelData);
@@ -301,7 +274,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
 
 
         // Convert the pixel data from RGBA to what Android wants, ARGB.
-        int bitmapData[] = new int[pixelData.length];
+        int[] bitmapData = new int[pixelData.length];
         for (int i = 0; i < mHeight; i++) {
             for (int j = 0; j < mWidth; j++) {
                 int p = pixelData[i * mWidth + j];
@@ -405,7 +378,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
 
         int val = motionEvent.getActionMasked();
         float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
-        Log.e("Values:", String.valueOf(val) + String.valueOf(axisVal));
+        Log.e("Values:", String.valueOf(val) + axisVal);
         AnchorNode anchorNode = new AnchorNode(anchor1);
         AnchorNode anchorNode2 = new AnchorNode(anchor2);
 
