@@ -85,8 +85,6 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
             @Override
             public void onClick(View view) {
                 if(points.size()>=5) {//si hay un cubo hecho reiniciamos la actividad
-                    Log.d("FIREBASE","PUS SI");
-
                     DisplayMetrics d = new DisplayMetrics();
                     getWindowManager().getDefaultDisplay().getMetrics(d);
                     mWidth = d.widthPixels;
@@ -297,7 +295,7 @@ public class ArActivity  extends AppCompatActivity implements ExampleDialog.Exam
                     @Override
                     public void onFailure(@NonNull Exception exception) {
                         // Handle unsuccessful uploads
-                        Log.d("FIREBASEURL=========================>","PUS FALLO");
+                        Log.d("FIREBASEURL=========================>","Fallo la conexion a la bd");
                     }
                 }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                     @Override
