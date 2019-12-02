@@ -1,5 +1,6 @@
 package com.example.myapplication.Activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,23 +9,36 @@ import android.opengl.GLES20;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.PixelCopy;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.myapplication.ExampleDialog;
 import com.example.myapplication.Fragments.MyArFragment;
+import com.example.myapplication.Models.Cotization;
 import com.example.myapplication.Models.MeasurePoint;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.ar.core.*;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.AnchorNode;
+import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
@@ -47,16 +61,25 @@ import com.example.myapplication.R;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ar.core.Session;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 
-public class ArActivity  extends AppCompatActivity {
+import io.opencensus.metrics.export.Point;
+
+public class ArActivity  extends AppCompatActivity implements ExampleDialog.ExampleDialogListener{
     ArFragment arFragment;
     boolean shouldAddModel = true;
     private AnchorNode currentAnchorNode;
@@ -74,6 +97,8 @@ public class ArActivity  extends AppCompatActivity {
     private int mHeight;
     private  boolean capturePicture = false;
     ArrayList<MeasurePoint> points;
+    final String[] uris = new String[1];
+    AlertDialog alertDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,13 +112,26 @@ public class ArActivity  extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(points.size()>=5) {//si hay un cubo hecho reiniciamos la actividad
-                    capturePicture = true;
-                    btnCambio.setText("Reiniciar");
-                    recreate();
+                    Log.d("FIREBASE","PUSI");
+
+                    DisplayMetrics d = new DisplayMetrics();
+                    getWindowManager().getDefaultDisplay().getMetrics(d);
+                    mWidth = d.widthPixels;
+                    mHeight = d.heightPixels;
+                    GLES20.glViewport(0, 0, mWidth, mHeight);
+                    try {
+                        SavePicture();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    //recreate();
+                }else{
+                    clearAnchor();
                 }
-                clearAnchor();
+
             }
         });
+
 
         arFragment = (MyArFragment) getSupportFragmentManager().findFragmentById(R.id.my_ar_fragment);
         arFragment.getPlaneDiscoveryController().hide();
@@ -133,6 +171,25 @@ public class ArActivity  extends AppCompatActivity {
                 btnCambio.setEnabled(true);//
             }
         });
+//        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+//        mAuth.signInAnonymously()
+//                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+//                    @Override
+//                    public void onComplete(@NonNull Task<AuthResult> task) {
+//                        if (task.isSuccessful()) {
+//                            // Sign in success, update UI with the signed-in user's information
+//                            Log.d("Firebase Auth", "signInAnonymously:success");
+//                            FirebaseUser user = mAuth.getCurrentUser();
+//                        } else {
+//                            // If sign in fails, display a message to the user.
+//                            Log.w("Firebase Auth", "signInAnonymously:failure", task.getException());
+//                            Toast.makeText(ArActivity.this, "Authentication failed.",
+//                                    Toast.LENGTH_SHORT).show();
+//                        }
+//
+//                        // ...
+//                    }
+//                });
 
     }
 
@@ -158,7 +215,7 @@ public class ArActivity  extends AppCompatActivity {
      * Método que dibuja la figura
      */
     private void createCube(){
-            MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(0f, 157f, 164f,0.8f))
+            CompletableFuture<Void> a = MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(0f, 157f, 164f,0.8f))
                 .thenAccept(
                         material -> {
 
@@ -230,14 +287,6 @@ public class ArActivity  extends AppCompatActivity {
             float totalDistanceSquared = 0;
             for (int i = 0; i < 3; ++i)
                 totalDistanceSquared += distance_vector[i] * distance_vector[i];*/
-            if (capturePicture) {
-                capturePicture = false;
-                try {
-                    SavePicture();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
 
         }
     }
@@ -263,45 +312,86 @@ public class ArActivity  extends AppCompatActivity {
             }
         }
         // Create a bitmap.
-        Bitmap bmp = Bitmap.createBitmap(bitmapData,
-                mWidth, mHeight, Bitmap.Config.ARGB_8888);
+        ArSceneView view = arFragment.getArSceneView();
+        Bitmap bmp = Bitmap.createBitmap(view.getWidth(),view.getHeight(), Bitmap.Config.ARGB_8888);
 
-        // Write it to disk.
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-        byte[] data = baos.toByteArray();
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReferenceFromUrl("gs://cotizapp-bd310.appspot.com");
+        final HandlerThread ht = new HandlerThread("PixelCopier");
+        ht.start();
+        PixelCopy.request(view, bmp, (res) -> {
+            if(res == PixelCopy.SUCCESS){
+                // Write it to disk.
 
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-        LocalDateTime now = LocalDateTime.now();
-        String date = dtf.format(now);
-        // Create a reference to "mountains.jpg"
-        StorageReference mountainsRef = storageRef.child(date+".jpg");
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                byte[] data = baos.toByteArray();
 
-        // Create a reference to 'images/mountains.jpg'
-        StorageReference mountainImagesRef = storageRef.child("images/"+date+".jpg");
 
-        // While the file names are the same, the references point to different files
-        mountainsRef.getName().equals(mountainImagesRef.getName());    // true
-        mountainsRef.getPath().equals(mountainImagesRef.getPath());    // false
+                FirebaseStorage storage = FirebaseStorage.getInstance();
+                // Create a storage reference from our app
+                StorageReference storageRef = storage.getReference();
 
-        UploadTask uploadTask = mountainsRef.putBytes(data);
-        uploadTask.addOnFailureListener(new OnFailureListener(){
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-                // Handle unsuccessful uploads
-                Log.d("FIREBASEURL=========================>","PUS FALLO");
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+                LocalDateTime now = LocalDateTime.now();
+                String date = dtf.format(now);
+                // Create a reference to "mountains.jpg"
+                StorageReference mountainsRef = storageRef.child("image-"+date+".jpg");
+
+                // Create a reference to 'images/mountains.jpg'
+                StorageReference mountainImagesRef = storageRef.child("images/image-"+date+".jpg");
+
+                // While the file names are the same, the references point to different files
+                mountainsRef.getName().equals(mountainImagesRef.getName());    // true
+                mountainsRef.getPath().equals(mountainImagesRef.getPath());    // false
+
+                UploadTask uploadTask = mountainsRef.putBytes(data);
+                uploadTask.addOnFailureListener(new OnFailureListener(){
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        // Handle unsuccessful uploads
+                        Log.d("FIREBASEURL=========================>","PUS FALLO");
+                    }
+                }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
+                        mountainsRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                uris[0] = uri.toString();
+                                Log.d("FIREBASEURL=========================>","" + uris[0]);
+                                openDialog();
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.d("FIREBASEURL=========================>",e.getMessage());
+                            }
+                        });
+                    }
+                });
+            }else {
+                Log.d("DrawAr", "Failed to copy pixels");
             }
-        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            ht.quitSafely();
+        }, new Handler(ht.getLooper()));
+    }
+    public void openDialog() {
+        ExampleDialog exampleDialog = new ExampleDialog();
+        exampleDialog.show(getSupportFragmentManager(), "example dialog");
+    }
+
+    @Override
+    public void applyTexts(String username, String password) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Cotization objData = new Cotization("",username,
+                Double.parseDouble(password)*volumen,""+volumen,uris[0]);
+        db.collection("cotization").add(objData).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
             @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
-                Uri downloadUrl = taskSnapshot.getUploadSessionUri();
-                Log.d("FIREBASEURL=========================>",""+downloadUrl);
+            public void onSuccess(DocumentReference documentReference) {
+                recreate();
             }
         });
+
     }
 
     /**
